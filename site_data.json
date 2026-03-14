@@ -1,0 +1,16 @@
+{
+    "site_metadata": {
+        "title": "My Python Web Project",
+        "description": "Built with VS Code and Python",
+        "author": "Dev Team"
+    },
+    "navigation": [
+        {"name": "Home", "link": "/"},
+        {"name": "About", "link": "/about"},
+        {"name": "Contact", "link": "/contact"}
+    ],
+    "features_enabled": {
+        "dark_mode": true,
+        "comments": false
+    }
+}
