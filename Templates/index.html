@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DRT Maintenance Command</title>
+    <style>
+        :root { 
+            --drt-blue: #004a99; 
+            --drt-gold: #ffc107; 
+            --urgent-red: #dc3545; 
+            --procure-orange: #fd7e14; 
+            --ok-green: #28a745; 
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1400px; margin: auto; }
+        
+        /* Header & Live Status */
+        .header { 
+            background: var(--drt-blue); 
+            color: white; padding: 20px; 
+            border-radius: 10px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        }
+        .toggle-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            background: rgba(255,255,255,0.1); 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.2); 
+        }
+        
+        /* Navigation Tabs */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            background: #e0e0e0;
+            color: #555;
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active {
+            background: var(--drt-blue);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,74,153,0.3);
+        }
+
+        /* Stats Grid */
+        .forecast-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 18px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-top: 6px solid; }
+        
+        .part-badge { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            border-radius: 15px; 
+            font-size: 0.8em; 
+            font-weight: 600; 
+            margin: 3px; 
+            border: 1px solid; 
+            background: rgba(0,0,0,0.03);
+        }
+        
+        /* Checklist Styling */
+        .checklist-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+        }
+        .engineer-note-preview {
+            display: block;
+            font-size: 0.8em;
+            color: #666;
+            background: #f9f9f9;
+            padding: 8px;
+            border-radius: 5px;
+            border-left: 3px solid #ddd;
+            font-style: italic;
+        }
+
+        /* Table Components */
+        .card-table { background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #fcfcfc; color: #777; font-size: 0.85em; text-transform: uppercase; }
+
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; color: white; display: inline-block; text-align: center; min-width: 80px; }
+        .live-dot { height: 10px; width: 10px; background-color: var(--ok-green); border-radius: 50%; display: inline-block; margin-right: 8px; box-shadow: 0 0 8px var(--ok-green); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Modals */
+        #modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:25px; box-shadow:0 0 40px rgba(0,0,0,0.2); border-radius:12px; z-index:100; width:450px; }
+        .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index:99; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0;">DRT Maintenance Command</h1>
+            <p id="mode-text" style="margin:5px 0 0 0; opacity:0.8;">Status: Predictive Simulation Mode</p>
+        </div>
+        <div class="toggle-container">
+            <span id="indicator-label" style="font-weight:bold; font-size:0.9em;">API DISCONNECTED</span>
+            <button id="mode-btn" onclick="toggleSync()" style="background:var(--drt-gold); border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer; min-width:160px;">🚀 CONNECT LIVE</button>
+        </div>
+    </div>
+
+    <div class="tab-navigation">
+        <button id="mgmt-tab-btn" class="nav-btn active" onclick="switchTab('mgmt')">📊 Management View</button>
+        <button id="eng-tab-btn" class="nav-btn" onclick="switchTab('eng')">🔧 Engineer Workshop</button>
+    </div>
+
+    <div id="mgmt-stats" class="forecast-grid">
+        <div class="stat-card" style="border-top-color:var(--urgent-red)">
+            <h3>🛑 Urgent Parts (5d)</h3>
+            <div id="immediate-list"></div>
+        </div>
+        <div class="stat-card" style="border-top-color:var(--procure-orange)">
+            <h3>📦 30-Day Budget</h3>
+            <h2 id="monthly-budget" style="margin:10px 0;">$0</h2>
+            <div id="proactive-list"></div>
+        </div>
+        <div class="stat-card" style="border-top-color:var(--drt-blue)">
+            <h3>📈 6-Month Strategic</h3>
+            <h2 id="strategic-budget" style="margin:10px 0;">$0</h2>
+            <div id="strategic-list"></div>
+        </div>
+    </div>
+
+    <div class="card-table">
+        <table>
+            <thead>
+                <tr id="table-head">
+                    </tr>
+            </thead>
+            <tbody id="fleet-table"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+<div id="modal">
+    <h3 id="modal-title" style="margin-top:0;">Service Entry</h3>
+    <input type="text" id="eng-name" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;" placeholder="Engineer Name">
+    <textarea id="eng-comment" style="width:100%; height:80px; padding:10px; border:1px solid #ddd; border-radius:5px;" placeholder="Details of work..."></textarea>
+    <button onclick="saveNote()" style="width:100%; background:var(--drt-blue); color:white; padding:12px; border:none; border-radius:5px; margin-top:10px; cursor:pointer; font-weight:bold;">COMMIT LOG</button>
+    <div id="previous-notes" style="margin-top:20px; max-height:200px; overflow-y:auto; border-top:1px solid #eee; padding-top:10px;"></div>
+</div>
+
+<script>
+    let isLive = false;
+    let activeBusId = "";
+    let currentTab = 'mgmt';
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('mgmt-tab-btn').classList.toggle('active', tab === 'mgmt');
+        document.getElementById('eng-tab-btn').classList.toggle('active', tab === 'eng');
+        document.getElementById('mgmt-stats').classList.toggle('hidden', tab === 'eng');
+        updateUI();
+    }
+
+    async function toggleSync() {
+        isLive = !isLive;
+        const btn = document.getElementById('mode-btn');
+        const label = document.getElementById('indicator-label');
+        const modeText = document.getElementById('mode-text');
+
+        if (isLive) {
+            btn.innerText = "🛑 DISCONNECT";
+            btn.style.background = "var(--urgent-red)"; 
+            btn.style.color = "white";
+            label.innerText = "LIVE TELEMETRY ACTIVE";
+            label.style.color = "var(--drt-gold)";
+            modeText.innerText = "Status: Live Telemetry Stream (Real-Time)";
+        } else {
+            btn.innerText = "🚀 CONNECT LIVE";
+            btn.style.background = "var(--drt-gold)";
+            btn.style.color = "black";
+            label.innerText = "API DISCONNECTED";
+            label.style.color = "white";
+            modeText.innerText = "Status: Predictive Simulation Mode";
+        }
+
+        await fetch('/api/sync_toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({active: isLive ? 1 : 0})
+        });
+        updateUI();
+    }
+
+    async function updateUI() {
+        const res = await fetch('/api/data'); 
+        const data = await res.json();
+        
+        // Update Stats
+        document.getElementById('monthly-budget').innerText = "$" + data.budget.monthly.toLocaleString();
+        document.getElementById('strategic-budget').innerText = "$" + data.budget.six_month.toLocaleString();
+
+        const renderBadges = (id, obj, colorVar) => {
+            const html = Object.entries(obj).map(([n, q]) => 
+                `<span class="part-badge" style="color:var(${colorVar}); border-color:var(${colorVar});">${q} ${n}</span>`
+            ).join('');
+            document.getElementById(id).innerHTML = html || "<small style='color:#999'>System Clear</small>";
+        };
+
+        renderBadges('immediate-list', data.immediate_parts, '--urgent-red');
+        renderBadges('proactive-list', data.proactive_parts, '--procure-orange');
+        renderBadges('strategic-list', data.six_month_parts, '--drt-blue');
+
+        // Update Table Headers
+        const header = document.getElementById('table-head');
+        if (currentTab === 'mgmt') {
+            header.innerHTML = `<th>Bus ID</th><th>Odometer</th><th>Due Date</th><th>Status</th><th>Est. Cost</th><th>Action</th>`;
+        } else {
+            header.innerHTML = `<th>Bus ID</th><th>Status</th><th>Service Checklist</th><th>Last Record</th><th>Action</th>`;
+        }
+
+        // Render Table Rows
+        const fleetTable = document.getElementById('fleet-table');
+        const filteredFleet = currentTab === 'eng' ? data.fleet.filter(b => b.status !== 'Healthy') : data.fleet;
+
+        fleetTable.innerHTML = filteredFleet.map(b => {
+            let color = "var(--ok-green)";
+            if (b.status === "Urgent") color = "var(--urgent-red)";
+            if (b.status === "Proactive") color = "var(--procure-orange)";
+
+            if (currentTab === 'mgmt') {
+                return `
+                    <tr>
+                        <td><strong>#${b.id}</strong> ${b.is_live ? '<span class="live-dot"></span>' : ''}</td>
+                        <td>${b.km.toLocaleString()} km</td>
+                        <td>${b.due_date}</td>
+                        <td><span class="badge" style="background:${color}">${b.status}</span></td>
+                        <td style="font-weight:bold;">$${b.ticket_cost.toLocaleString()}</td>
+                        <td><button onclick="openModal('${b.id}')" style="cursor:pointer;">Logs</button></td>
+                    </tr>
+                `;
+            } else {
+                // Engineer View Row
+                const checklistHtml = b.parts_needed.map(p => `
+                    <div class="checklist-row">
+                        <input type="checkbox"> <span>Install ${p}</span>
+                    </div>
+                `).join('');
+
+                return `
+                    <tr>
+                        <td><strong>#${b.id}</strong><br><small>${b.km.toLocaleString()} km</small></td>
+                        <td><span class="badge" style="background:${color}">${b.status}</span></td>
+                        <td>${checklistHtml}</td>
+                        <td id="note-${b.id}"><small style="color:#999">Fetching...</small></td>
+                        <td><button onclick="openModal('${b.id}')">Update Log</button></td>
+                    </tr>
+                `;
+            }
+        }).join('');
+
+        // Fetch last comments for Engineer View
+        if (currentTab === 'eng') {
+            filteredFleet.forEach(async (b) => {
+                const cRes = await fetch('/api/comments/' + b.id);
+                const logs = await cRes.json();
+                const cell = document.getElementById(`note-${b.id}`);
+                if (logs.length > 0) {
+                    cell.innerHTML = `<span class="engineer-note-preview">"${logs[0].comment}"<br><b>- ${logs[0].engineer_name}</b></span>`;
+                } else {
+                    cell.innerHTML = `<small style="color:#ccc">No previous notes</small>`;
+                }
+            });
+        }
+    }
+
+    async function openModal(id) {
+        activeBusId = id; 
+        document.getElementById('modal-title').innerText = "History: Bus #" + id;
+        document.getElementById('modal').style.display = 'block'; 
+        document.getElementById('overlay').style.display = 'block';
+        const res = await fetch('/api/comments/' + id); 
+        const logs = await res.json();
+        document.getElementById('previous-notes').innerHTML = logs.map(l => 
+            `<div style="font-size:0.85em; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;">
+                <b>${l.engineer_name}</b> <small style="color:#999;">${l.timestamp}</small><br>${l.comment}
+            </div>`
+        ).join('') || "No logs.";
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
+
+    async function saveNote() {
+        const name = document.getElementById('eng-name').value; 
+        const note = document.getElementById('eng-comment').value;
+        if(!name || !note) return alert("Fill fields");
+        await fetch('/api/save_comment', {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({vehicle_id: activeBusId, engineer_name: name, comment: note})
+        });
+        document.getElementById('eng-comment').value = ""; 
+        closeModal();
+        updateUI();
+    }
+    
+    updateUI();
+    // Refresh only if live is active to simulate real-time feed
+    setInterval(() => { if(isLive) updateUI(); }, 3000);
+</script>
+</body>
+</html>
