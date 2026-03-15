@@ -163,7 +163,21 @@
     <button onclick="saveNote()" style="width:100%; background:var(--drt-blue); color:white; padding:12px; border:none; border-radius:5px; margin-top:10px; cursor:pointer; font-weight:bold;">COMMIT LOG</button>
     <div id="previous-notes" style="margin-top:20px; max-height:200px; overflow-y:auto; border-top:1px solid #eee; padding-top:10px;"></div>
 </div>
-
+<div class="header">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <img src="{{ url_for('static', filename='drt-logo.png') }}" alt="DRT Logo" style="height: 60px; width: auto;">
+        
+        <div>
+            <h1 style="margin:0;">DRT Maintenance Command</h1>
+            <p id="mode-text" style="margin:5px 0 0 0; opacity:0.8;">Status: Predictive Simulation Mode</p>
+        </div>
+    </div>
+    
+    <div class="toggle-container">
+        <span id="indicator-label" style="font-weight:bold; font-size:0.9em;">API DISCONNECTED</span>
+        <button id="mode-btn" onclick="toggleSync()" style="background:var(--drt-gold); border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer; min-width:160px;">🚀 CONNECT LIVE</button>
+    </div>
+</div>
 <script>
     let isLive = false;
     let activeBusId = "";
