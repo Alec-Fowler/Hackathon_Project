@@ -40,6 +40,7 @@ def index():
 @app.route('/api/data')
 def get_data():
     conn = get_db_connection()
+
     # Check if the "Connect Live" toggle is active in the DB
     sync_status = conn.execute("SELECT sync_on FROM system_state").fetchone()
     sync_on = sync_status['sync_on'] if sync_status else 0
@@ -52,6 +53,7 @@ def get_data():
 
     for row in db_rows:
         bus_id = row['vehicle_id']
+
         # Simulated logic for km if not live, otherwise use live_km from DB
         bus_num = int(''.join(filter(str.isdigit, bus_id or '0')))
         current_km = row['live_km'] if sync_on == 1 else (bus_num * 1650) % 120000
@@ -128,5 +130,6 @@ def save_comment():
     return jsonify({"status": "success"})
 
 if __name__ == '__main__':
-    # Running on port 8000 as requested
-    app.run(debug=True, port=8000)
+
+    # Running on port 8010 as requested
+    app.run(debug=True, port=8010)
